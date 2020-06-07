@@ -21,3 +21,5 @@ Imports:
     wordnet,
     stringr,
     progress
+URL: https://github.com/jolars/kindle2anki
+BugReports: https://github.com/jolars/kindle2anki/issues
