@@ -8,7 +8,8 @@ kindle2anki(
   file,
   asin,
   outfile = paste0(asin, ".tsv"),
-  prefer_dictionary_usage = TRUE
+  prefer_dictionary_usage = TRUE,
+  progress_bar = TRUE
 )
 }
 \arguments{
@@ -21,9 +22,13 @@ kindle2anki(
 \item{prefer_dictionary_usage}{Whether to prefer the usage entry from the
 book (Kindle database) or from the wordnet database. If this is \code{TRUE} but
 there is no wordnet entry, the usage entry from the book will be returned.}
+
+\item{progress_bar}{Should a progress bar we shown?}
 }
 \value{
-
+If \code{outfile} is not \code{NULL}, a data table is written to \code{outfile} and
+the data table is returned as a \code{tibble} invisibly. If \code{outfile} is
+\code{NULL}, the data table is returned visibly and no file it output.
 }
 \description{
 This function converts and augments

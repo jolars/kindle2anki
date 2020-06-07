@@ -4,10 +4,18 @@
 \name{kindle2anki-package}
 \alias{kindle2anki}
 \alias{kindle2anki-package}
-\title{kindle2anki: Get Vocabulary from Kindle to Anki}
+\title{kindle2anki: Convert Kindle Vocabulary to Anki Flashcards}
 \description{
-Import vocabulary from Amazon Kindle e-reader and export to 
+Import vocabulary from Amazon Kindle e-reader and export to a
     format ready for import as Anki flash cards.
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/jolars/kindle2anki}
+  \item Report bugs at \url{https://github.com/jolars/kindle2anki/issues}
+}
+
 }
 \author{
 \strong{Maintainer}: Johan Larsson \email{johanlarsson@outlook.com} (\href{https://orcid.org/0000-0002-4029-5945}{ORCID})

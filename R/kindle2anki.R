@@ -18,11 +18,11 @@
 #'   there is no wordnet entry, the usage entry from the book will be returned.
 #' @param progress_bar Should a progress bar we shown?
 #'
-#' @return
+#' @return If `outfile` is not `NULL`, a data table is written to `outfile` and
+#'   the data table is returned as a `tibble` invisibly. If `outfile` is
+#'   `NULL`, the data table is returned visibly and no file it output.
 #' @export
 #' @seealso [listBooks()]
-#'
-#' @examples
 kindle2anki <- function(file,
                         asin,
                         outfile = paste0(asin, ".tsv"),
@@ -140,7 +140,7 @@ kindle2anki <- function(file,
                 sep = "\t",
                 col.names = FALSE,
                 row.names = FALSE)
-    invisible(out)
+    invisible(dplyr::as_tibble(out))
   }
 }
 
