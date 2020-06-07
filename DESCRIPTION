@@ -1,0 +1,23 @@
+Package: kindle2anki
+Title: Convert Kindle Vocabulary to Anki Flashcards
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Johan",
+           family = "Larsson",
+           role = c("aut", "cre"),
+           email = "johanlarsson@outlook.com",
+           comment = c(ORCID = "0000-0002-4029-5945"))
+Description: Import vocabulary from Amazon Kindle e-reader and export to a
+    format ready for import as Anki flash cards.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.0
+Imports: 
+    DBI,
+    dplyr,
+    dbplyr,
+    wordnet,
+    stringr,
+    progress
