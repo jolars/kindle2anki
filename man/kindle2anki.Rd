@@ -8,6 +8,7 @@ kindle2anki(
   file,
   asin,
   outfile = paste0(asin, ".tsv"),
+  word_history = NULL,
   prefer_dictionary_usage = TRUE,
   progress_bar = TRUE
 )
@@ -18,6 +19,10 @@ kindle2anki(
 \item{asin}{Amazon ID (get it by calling \code{\link[=listBooks]{listBooks()}} on \code{file} first.}
 
 \item{outfile}{Output file; should end with \code{.tsv}.}
+
+\item{word_history}{Character vector of file names for previous
+\code{.tsv} exports used to keep a history
+of previously exported words in order to avoid duplicates.}
 
 \item{prefer_dictionary_usage}{Whether to prefer the usage entry from the
 book (Kindle database) or from the wordnet database. If this is \code{TRUE} but

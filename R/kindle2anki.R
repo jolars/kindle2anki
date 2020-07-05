@@ -17,6 +17,9 @@
 #'   book (Kindle database) or from the wordnet database. If this is `TRUE` but
 #'   there is no wordnet entry, the usage entry from the book will be returned.
 #' @param progress_bar Should a progress bar we shown?
+#' @param word_history Character vector of file names for previous
+#'   `.tsv` exports used to keep a history
+#'   of previously exported words in order to avoid duplicates.
 #'
 #' @return If `outfile` is not `NULL`, a data table is written to `outfile` and
 #'   the data table is returned as a `tibble` invisibly. If `outfile` is
@@ -26,11 +29,27 @@
 kindle2anki <- function(file,
                         asin,
                         outfile = paste0(asin, ".tsv"),
+                        word_history = NULL,
                         prefer_dictionary_usage = TRUE,
                         progress_bar = TRUE) {
 
   if (!file.exists(file))
-    stop("file does not exist")
+    stop("`file =", file, "` cannot be found")
+
+  if (!is.null(word_history)) {
+    if (is.list(word_history))
+      word_history <- unlist(word_history)
+
+    stopifnot(is.character(word_history))
+
+    if (!file.exists(word_history))
+      stop("`word_history = ", word_history, "` cannot be found")
+
+    word_history <- lapply(word_history, read.table, sep = "\t")
+    word_history <- do.call(rbind, word_history)
+    colnames(word_history) <-
+      c("word", "class", "definition", "synonyms", "usage")
+  }
 
   con <- DBI::dbConnect(RSQLite::SQLite(), file)
 
@@ -40,15 +59,14 @@ kindle2anki <- function(file,
 
   DBI::dbDisconnect(con)
 
-  asins <- books %>% dplyr::pull(asin)
+  asins <- dplyr::pull(books, asin)
 
   ind <- match(asin, asins)
 
   if (is.na(ind))
     stop("asin (Amazon ID) does not exist in database")
 
-  id <- books %>%
-    dplyr::filter(asin == !!asin) %>%
+  id <- dplyr::filter(books, asin == !!asin) %>%
     dplyr::pull(id)
 
   word_key_usage <- dplyr::filter(lookups, book_key == !!id) %>%
@@ -63,9 +81,19 @@ kindle2anki <- function(file,
   tmp <- dplyr::left_join(word_key_usage, stems, "id") %>%
     dplyr::select(stem, usage)
 
+  classes <- c("ADJECTIVE", "NOUN", "ADVERB", "VERB")
+
+  if (!is.null(word_history)) {
+    # avoid duplicating words present in word_history
+    stems_history <- word_history$word
+
+    used_ind <- dplyr::pull(tmp, stem) %in% stems_history
+
+    tmp <- tmp[-used_ind, ]
+  }
+
   stems <- dplyr::pull(tmp, stem)
   usages <- dplyr::pull(tmp, usage)
-  classes <- c("ADJECTIVE", "NOUN", "ADVERB", "VERB")
 
   wordnet::initDict()
 
@@ -104,16 +132,26 @@ kindle2anki <- function(file,
           glossary <- synsets[[l]]$getGloss()
           glossary_split <- stringr::str_split(glossary, ";")[[1]]
 
+          # get usage from dictionary (if it exists)
           usage_ind <- grepl("\"", glossary_split)
-          definition_ind <- !usage_ind
+          usage <- glossary_split[which(usage_ind)[1]]
+          usage <- gsub("\"", "", usage)
+          usage <- stringr::str_trim(usage)
 
+          # see if usage from dictionary actually contains the word
+          word_in_usage <- word %in% usage
+
+          # get definition of word
+          definition_ind <- !usage_ind
           definition <- glossary_split[which(definition_ind)[1]]
 
-          if (any(usage_ind) && prefer_dictionary_usage) {
+          if (any(usage_ind) && prefer_dictionary_usage && word_in_usage) {
+            # use usage from dictionary
             usage <- glossary_split[which(usage_ind)[1]]
             usage <- gsub("\"", "", usage)
             usage <- stringr::str_trim(usage)
           } else {
+            # use usage from book
             usage <- usages[[i]]
           }
 
@@ -128,8 +166,10 @@ kindle2anki <- function(file,
     }
   }
 
+  out <- dplyr::as_tibble(out)
+
   if (is.null(outfile)) {
-    dplyr::as_tibble(out)
+    out
   } else {
     if (!dir.exists(dirname(outfile))) {
       dir.create(dirname(outfile), recursive = TRUE)
@@ -140,7 +180,7 @@ kindle2anki <- function(file,
                 sep = "\t",
                 col.names = FALSE,
                 row.names = FALSE)
-    invisible(dplyr::as_tibble(out))
+    invisible(out)
   }
 }
 
