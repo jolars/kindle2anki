@@ -20,6 +20,7 @@ Imports:
     dbplyr,
     wordnet,
     stringr,
-    progress
+    progress,
+    magrittr
 URL: https://github.com/jolars/kindle2anki
 BugReports: https://github.com/jolars/kindle2anki/issues
