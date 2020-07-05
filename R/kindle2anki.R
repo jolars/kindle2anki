@@ -127,6 +127,7 @@ kindle2anki <- function(file,
         # don't keep main word in synonyms
         synonyms <- synonyms[!(synonyms %in% word)]
         synonyms <- paste(synonyms, collapse = ", ")
+        synonyms <- stringr::str_trim(synonyms)
 
         for (l in seq_along(synsets)) {
           glossary <- synsets[[l]]$getGloss()
@@ -139,21 +140,24 @@ kindle2anki <- function(file,
           usage <- stringr::str_trim(usage)
 
           # see if usage from dictionary actually contains the word
-          word_in_usage <- word %in% usage
+          # which sometimes is not the case in wordnet
+          word_in_usage <- grepl(word, tolower(usage), fixed = TRUE)
 
           # get definition of word
           definition_ind <- !usage_ind
           definition <- glossary_split[which(definition_ind)[1]]
+          definition <- stringr::str_trim(definition)
 
           if (any(usage_ind) && prefer_dictionary_usage && word_in_usage) {
             # use usage from dictionary
             usage <- glossary_split[which(usage_ind)[1]]
             usage <- gsub("\"", "", usage)
-            usage <- stringr::str_trim(usage)
           } else {
             # use usage from book
             usage <- usages[[i]]
           }
+
+          usage <- stringr::str_trim(usage)
 
           out <- rbind(out,
                        data.frame(word = word,
