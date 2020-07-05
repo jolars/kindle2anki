@@ -7,5 +7,7 @@
 listBooks <- function(file) {
   con <- DBI::dbConnect(RSQLite::SQLite(), file)
   dplyr::tbl(con, "BOOK_INFO") %>%
-    dplyr::select(title, asin)
+    dplyr::select(title, asin) %>%
+    dplyr::mutate(id = row_number()) %>%
+    dplyr::arrange(desc(id))
 }
