@@ -6,5 +6,6 @@
 # roxygen namespace tags. Modify with care!
 ## usethis namespace: start
 #' @import magrittr
+#' @import dplyr
 ## usethis namespace: end
 NULL

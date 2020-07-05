@@ -2,8 +2,8 @@
 % Please edit documentation in R/kindle2anki-package.R
 \docType{package}
 \name{kindle2anki-package}
-\alias{kindle2anki}
 \alias{kindle2anki-package}
+\alias{_PACKAGE}
 \title{kindle2anki: Convert Kindle Vocabulary to Anki Flashcards}
 \description{
 Import vocabulary from Amazon Kindle e-reader and export to a

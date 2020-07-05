@@ -2,3 +2,5 @@
 
 export(kindle2anki)
 export(listBooks)
+import(dplyr)
+import(magrittr)
