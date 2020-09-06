@@ -42,13 +42,15 @@ kindle2anki <- function(file,
 
     stopifnot(is.character(word_history))
 
-    if (!file.exists(word_history))
-      stop("`word_history = ", word_history, "` cannot be found")
+    for (i in seq_along(word_history)) {
+      if (!file.exists(word_history[i]))
+        stop("`word_history = ", word_history[i], "` cannot be found")
+    }
 
     word_history <- lapply(word_history, read.table, sep = "\t")
     word_history <- do.call(rbind, word_history)
     colnames(word_history) <-
-      c("word", "class", "definition", "synonyms", "usage")
+      c("ID", "word", "class", "definition", "synonyms", "usage", "language")
   }
 
   con <- DBI::dbConnect(RSQLite::SQLite(), file)
@@ -75,6 +77,17 @@ kindle2anki <- function(file,
 
   id <- dplyr::pull(word_key_usage, id)
 
+  language <- gsub("\\:.*", "", id, perl = TRUE)
+
+  language_table <- data.frame(
+    language = c("swedish", "english"),
+    code = c("se", "en")
+  )
+
+  language <- vapply(language,
+                     function(x) language_table$language[match(x, language_table$code)],
+                     FUN.VALUE = character(1))
+
   stems <- dplyr::filter(words, id %in% !!id) %>%
     dplyr::select(id, stem)
 
@@ -82,15 +95,6 @@ kindle2anki <- function(file,
     dplyr::select(stem, usage)
 
   classes <- c("ADJECTIVE", "NOUN", "ADVERB", "VERB")
-
-  if (!is.null(word_history)) {
-    # avoid duplicating words present in word_history
-    stems_history <- word_history$word
-
-    used_ind <- dplyr::pull(tmp, stem) %in% stems_history
-
-    tmp <- tmp[-used_ind, ]
-  }
 
   stems <- dplyr::pull(tmp, stem)
   usages <- dplyr::pull(tmp, usage)
@@ -120,57 +124,56 @@ kindle2anki <- function(file,
       if (is.null(terms))
         next
 
-      for (k in seq_along(terms)) {
-        synsets <- wordnet::getSynsets(terms[[k]])
-        synonyms <- wordnet::getSynonyms(terms[[k]])
+      synsets <- unlist(lapply(terms, wordnet::getSynsets))
 
-        # don't keep main word in synonyms
-        synonyms <- synonyms[!(synonyms %in% word)]
-        synonyms <- paste(synonyms, collapse = ", ")
-        synonyms <- stringr::str_trim(synonyms)
+      synonyms <- extractSynonyms(terms, word)
 
-        for (l in seq_along(synsets)) {
-          glossary <- synsets[[l]]$getGloss()
-          glossary_split <- stringr::str_split(glossary, ";")[[1]]
+      definition <- character(length(synsets))
+      usage <- character(length(synsets))
 
-          # get usage from dictionary (if it exists)
-          usage_ind <- grepl("\"", glossary_split)
-          usage <- glossary_split[which(usage_ind)[1]]
-          usage <- gsub("\"", "", usage)
-          usage <- stringr::str_trim(usage)
+      for (l in seq_along(synsets)) {
+        glossary <- synsets[[l]]$getGloss()
 
-          # see if usage from dictionary actually contains the word
-          # which sometimes is not the case in wordnet
-          word_in_usage <- grepl(word, tolower(usage), fixed = TRUE)
-
-          # get definition of word
-          definition_ind <- !usage_ind
-          definition <- glossary_split[which(definition_ind)[1]]
-          definition <- stringr::str_trim(definition)
-
-          if (any(usage_ind) && prefer_dictionary_usage && word_in_usage) {
-            # use usage from dictionary
-            usage <- glossary_split[which(usage_ind)[1]]
-            usage <- gsub("\"", "", usage)
-          } else {
-            # use usage from book
-            usage <- usages[[i]]
-          }
-
-          usage <- stringr::str_trim(usage)
-
-          out <- rbind(out,
-                       data.frame(word = word,
-                                  class = tolower(class),
-                                  definition = definition,
-                                  synonyms = synonyms,
-                                  usage = usage))
-        }
+        definition[l] <- extractDefinition(glossary)
+        usage[l] <- extractUsage(glossary, word)
       }
+
+      usage <- usage[!is.na(usage)]
+
+      if (prefer_dictionary_usage && length(usage) > 0) {
+        usage <- usage[1] # just pick the first usage entry
+      } else {
+        usage <- stringr::str_trim(usages[i])
+      }
+
+      if (length(definition) > 1) {
+        definition <- paste0("<ul><li>",
+                             paste0(definition, collapse = "</li><li>"),
+                             "</li></ul>")
+      }
+
+      out <- rbind(out,
+                   data.frame(ID = paste(word, tolower(class), language[i], sep = "_"),
+                              word = word,
+                              class = tolower(class),
+                              definition = definition,
+                              synonyms = synonyms,
+                              usage = usage,
+                              language = language[i]))
     }
   }
 
   out <- dplyr::as_tibble(out)
+
+  # remove duplicates
+  out <- out[!duplicated(out$ID), ]
+
+  if (!is.null(word_history)) {
+    # avoid duplicating words present in word_history
+    used_ind <- dplyr::pull(out, ID) %in% word_history$ID
+
+    out <- out[-used_ind, ]
+  }
 
   if (is.null(outfile)) {
     out
@@ -184,9 +187,12 @@ kindle2anki <- function(file,
                 sep = "\t",
                 col.names = FALSE,
                 row.names = FALSE)
+
     invisible(out)
   }
 }
+
+
 
 
 
